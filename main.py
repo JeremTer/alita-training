@@ -19,6 +19,7 @@ class AlitaSoundDataset(Dataset):
 
     def __getitem__(self, row: int):  # a[1] -> a.__getitem__(1), how to get item from dataset
         audio_sample_path = self._get_audio_sample_path(row)
+        print(audio_sample_path)
         label = self._get_audio_sample_label(row)
         signal, sample_rate = torchaudio.load(audio_sample_path)
         return signal, label
@@ -33,8 +34,8 @@ class AlitaSoundDataset(Dataset):
 
 
 if __name__ == '__main__':
-    ANNOTATIONS_FILE = '/Users/jerem/Dev/audios.csv'
-    AUDIO_DIR = '/Users/jerem/Dev/audios'
+    ANNOTATIONS_FILE = 'datasets/audios.csv'
+    AUDIO_DIR = 'datasets'
 
     asd = AlitaSoundDataset(ANNOTATIONS_FILE, AUDIO_DIR)
 
