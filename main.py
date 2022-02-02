@@ -4,6 +4,9 @@ import pandas as pd
 import torch
 import torchaudio
 from torch.utils.data import Dataset
+from torchsummary import summary
+
+from cnn import CNNetwork
 
 FOLDER_COLUMN_INDEX = 1
 FILENAME_COLUMN_INDEX = 0
@@ -73,3 +76,6 @@ if __name__ == '__main__':
 
     asd = AlitaSoundDataset(ANNOTATIONS_FILE, AUDIO_DIR, SAMPLE_RATE, NUM_SAMPLES)
     signal, label = asd[1]
+
+    cnn = CNNetwork()
+    summary(cnn, (1, 64, 44))
