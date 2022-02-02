@@ -1,8 +1,9 @@
-import torch
-from torch.utils.data import Dataset
-import pandas as pd
-import torchaudio
 import os
+
+import pandas as pd
+import torch
+import torchaudio
+from torch.utils.data import Dataset
 
 FOLDER_COLUMN_INDEX = 1
 FILENAME_COLUMN_INDEX = 0
@@ -12,22 +13,37 @@ CLASS_COLUMN_INDEX = 2
 class AlitaSoundDataset(Dataset):
 
     def __init__(self, annotations_file: str, audio_dir: str,
-                 target_sample_rate: int):
+                 target_sample_rate: int, num_samples: int):
         self.annotations = pd.read_csv(annotations_file, sep=';')
         self.audio_dir = audio_dir
         self.target_sample_rate = target_sample_rate
+        self.num_samples = num_samples
 
     def __len__(self):
         return len(self.annotations)
 
     def __getitem__(self, index: int):
         audio_sample_path = self._get_audio_sample_path(index)
-        print(audio_sample_path)
         label = self._get_audio_sample_label(index)
         signal, sample_rate = torchaudio.load(audio_sample_path)
         signal = self._resample_if_necessary(signal, sample_rate)
         signal = self._mix_down_if_necessary(signal)
+        signal = self._cut_if_necessary(signal)
+        signal = self._right_pad_if_necessary(signal)
         return signal, label
+
+    def _right_pad_if_necessary(self, signal: torch.Tensor) -> torch.Tensor:
+        signal_length = signal.shape[1]
+        if signal_length < self.num_samples:
+            num_missing_samples = self.num_samples - signal_length
+            last_dim_padding = (0, num_missing_samples)
+            signal = torch.nn.functional.pad(signal, last_dim_padding)
+        return signal
+
+    def _cut_if_necessary(self, signal: torch.Tensor) -> torch.Tensor:
+        if signal.shape[1] > self.num_samples:
+            signal = signal[:, :self.num_samples]
+        return signal
 
     def _resample_if_necessary(self, signal: torch.Tensor, sample_rate: int) -> torch.Tensor:
         if sample_rate != self.target_sample_rate:
@@ -52,20 +68,8 @@ class AlitaSoundDataset(Dataset):
 if __name__ == '__main__':
     ANNOTATIONS_FILE = 'datasets/audios.csv'
     AUDIO_DIR = 'datasets'
-    SAMPLE_RATE = 16000
+    SAMPLE_RATE = 44100
+    NUM_SAMPLES = 90000
 
-    asd = AlitaSoundDataset(ANNOTATIONS_FILE, AUDIO_DIR, SAMPLE_RATE)
-    sum = 0
-
-    print(f"There are {len(asd)} samples in the dataset.")
-    print(asd)
-
-    for i in range(len(asd)):
-        signal, label = asd[i]
-        sum += signal.shape[1]
-        print(signal.size())
-
-print(sum / len(asd))
-signal, label = asd[0]
-print(signal)
-print(label)
+    asd = AlitaSoundDataset(ANNOTATIONS_FILE, AUDIO_DIR, SAMPLE_RATE, NUM_SAMPLES)
+    signal, label = asd[1]
