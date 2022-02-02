@@ -38,11 +38,14 @@ if __name__ == '__main__':
     AUDIO_DIR = 'datasets'
 
     asd = AlitaSoundDataset(ANNOTATIONS_FILE, AUDIO_DIR)
+    sum = 0
 
     print(f"There are {len(asd)} samples in the dataset.")
     print(asd)
 
-    signal, label = asd[0]
-
-    print(signal)
-    print(label)
+    for i in range(len(asd)):
+        signal, label = asd[i]
+        sum+= signal.shape[1]
+        print(signal.size())
+        
+print(sum/len(asd))
