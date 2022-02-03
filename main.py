@@ -16,11 +16,13 @@ CLASS_COLUMN_INDEX = 2
 class AlitaSoundDataset(Dataset):
 
     def __init__(self, annotations_file: str, audio_dir: str,
-                 target_sample_rate: int, num_samples: int):
+                 target_sample_rate: int, num_samples: int, transformation):
         self.annotations = pd.read_csv(annotations_file, sep=';')
         self.audio_dir = audio_dir
         self.target_sample_rate = target_sample_rate
         self.num_samples = num_samples
+        self.transformation = transformation
+
 
     def __len__(self):
         return len(self.annotations)
@@ -33,6 +35,7 @@ class AlitaSoundDataset(Dataset):
         signal = self._mix_down_if_necessary(signal)
         signal = self._cut_if_necessary(signal)
         signal = self._right_pad_if_necessary(signal)
+        signal = self.transformation(signal)
         return signal, label
 
     def _right_pad_if_necessary(self, signal: torch.Tensor) -> torch.Tensor:
@@ -74,8 +77,16 @@ if __name__ == '__main__':
     SAMPLE_RATE = 44100
     NUM_SAMPLES = 90000
 
-    asd = AlitaSoundDataset(ANNOTATIONS_FILE, AUDIO_DIR, SAMPLE_RATE, NUM_SAMPLES)
+    mel_spectrogram = torchaudio.transforms.MelSpectrogram(
+        sample_rate=SAMPLE_RATE,
+        n_fft=1024,
+        hop_length=512,
+        n_mels=64
+    )
+
+    asd = AlitaSoundDataset(ANNOTATIONS_FILE, AUDIO_DIR, SAMPLE_RATE, NUM_SAMPLES, mel_spectrogram)
     signal, label = asd[1]
+    print(signal.shape)
 
     cnn = CNNetwork()
-    summary(cnn, (1, 64, 44))
+    summary(cnn, (1, 64, 176))
